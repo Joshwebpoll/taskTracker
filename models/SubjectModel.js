@@ -8,7 +8,8 @@ const subjectSchema = mongoose.Schema(
     },
 
     subjectColor: {
-      type: String,
+      type: [String],
+      default: ["#222"],
       required: true,
     },
     subjectDate: {

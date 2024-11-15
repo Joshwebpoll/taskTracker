@@ -10,12 +10,14 @@ const NotFound = require("./middlewares/not-found");
 // const errorHandlerMiddleware = require("./middlewares/error-handler");
 
 const userAuthRoute = require("./route/userAuth.js");
+const taskRoute = require("./route/taskRoute.js");
 dotenv.config();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/v1/auth", userAuthRoute);
+app.use("/api/v1/task", taskRoute);
 app.use(NotFound);
 // app.use(errorHandlerMiddleware);
 const port = 3000;
