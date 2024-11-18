@@ -82,7 +82,7 @@ const getAllTask = async (req, res) => {
         message: "No Task found",
       });
     }
-    return res.status(StatusCodes.BAD_REQUEST).json({
+    return res.status(StatusCodes.OK).json({
       success: true,
       message: "Success",
       data: getAllTask,
