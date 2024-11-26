@@ -1,7 +1,15 @@
 const express = require("express");
-const { createExamTask } = require("../controllers/examsController");
+const {
+  createExamTask,
+  getAllExam,
+  deleteExam,
+  updateExam,
+} = require("../controllers/examsController");
 const router = express.Router();
-
-router.post("/createexam", createExamTask);
+const protectRoute = require("../middlewares/protectRoute");
+router.post("/createexam", protectRoute, createExamTask);
+router.get("/getallexam", protectRoute, getAllExam);
+router.delete("/deleteexam/:examId", protectRoute, deleteExam);
+router.patch("/updateexam/:examId", protectRoute, updateExam);
 
 module.exports = router;

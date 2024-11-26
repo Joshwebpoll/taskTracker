@@ -1,68 +1,56 @@
 const { StatusCodes } = require("http-status-codes");
-const Subject = require("../models/SubjectModel");
-const Task = require("../models/TaskModel");
+const Schedule = require("../models/scheduleModel");
 
-const createSubject = async (req, res) => {
-  const { subject } = req.body;
+const createSchedule = async (req, res) => {
+  const {
+    subject,
+    module,
+    date,
+    building,
+    startTime,
+    endTime,
+    teacher,
+    room,
+    repeatdays,
+    startDate,
+    endDate,
+  } = req.body;
+
   try {
-    if (!subject) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: "Field is required",
-      });
-    }
-
-    const subjects = await Subject.findOne({ subjecName: subject });
-
-    if (subjects) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: `Duplicate Entries.. ${subject} already Exist`,
-      });
-    }
-
-    const newSubject = new Subject({
-      subjecName: subject,
-      subjectDate: new Date(),
-    });
-    await newSubject.save();
-
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      success: true,
-      message: "success",
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      success: false,
-      message: "Something went wrong",
-    });
-  }
-};
-
-const createTask = async (req, res) => {
-  const { subject, taskType, taskTitle, taskDetail, dueDate } = req.body;
-  console.log(req.user);
-  try {
-    if (!subject || !taskType || !taskTitle || !taskDetail || !dueDate) {
+    if (
+      !subject ||
+      !module ||
+      !date ||
+      !building ||
+      !startTime ||
+      !endTime ||
+      !teacher ||
+      !room
+    ) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
         message: "All fields are required",
       });
     }
 
-    const task = new Task({
+    const task = new Schedule({
       subject,
-      taskType,
-      taskTitle,
-      taskDetail,
-      dueDate,
+      module,
+      date,
+      building,
+      startTime,
+      endTime,
+      teacher,
+      room,
+      repeatdays,
+      startDate,
+      endDate,
       userId: req.user.userid,
     });
     await task.save();
     return res.status(StatusCodes.BAD_REQUEST).json({
       success: true,
-      message: "Task Created Successfully",
+      message: "schedule Created Successfully",
     });
   } catch (error) {
     console.log(error.message);
@@ -72,10 +60,10 @@ const createTask = async (req, res) => {
     });
   }
 };
-const getAllTask = async (req, res) => {
+const getSchedule = async (req, res) => {
   try {
     user_id = req.user.userId;
-    const getAllTask = await Task.find({ user_id });
+    const getAllTask = await Schedule.find({ user_id });
     if (getAllTask.length === 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
@@ -95,18 +83,21 @@ const getAllTask = async (req, res) => {
     });
   }
 };
-const deleteTask = async (req, res) => {
-  const taskId = req.params.taskid;
+const deleteSchedule = async (req, res) => {
+  const scheduleId = req.params.scheduleId;
+  console.group(scheduleId);
   const userid = req.user.userid;
+
   try {
-    const task = await Task.findOneAndDelete({
-      _id: taskId,
+    const schedule = await Schedule.findOneAndDelete({
+      _id: scheduleId,
       userId: userid,
     });
-    if (!task) {
+    console.log(schedule);
+    if (!schedule) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: `No id found for ${taskId}... Please try again`,
+        message: `No id found for ${scheduleId}... Please try again`,
       });
     }
     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -121,13 +112,14 @@ const deleteTask = async (req, res) => {
   }
 };
 
-const UpdateTask = async (req, res) => {
-  const taskId = req.params.taskid;
+const UpdateSchedule = async (req, res) => {
+  const scheduleId = req.params.scheduleId;
   const userid = req.user.userid;
+  console.log(userid);
   try {
-    const task = await Task.findOneAndUpdate(
+    const schedule = await Schedule.findOneAndUpdate(
       {
-        _id: taskId,
+        _id: scheduleId,
         userId: userid,
       },
       req.body,
@@ -136,10 +128,10 @@ const UpdateTask = async (req, res) => {
         new: true,
       }
     );
-    if (!task) {
+    if (!schedule) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: `No id found for ${taskId}... Please try again`,
+        message: `No id found for ${scheduleId}... Please try again`,
       });
     }
     return res.status(StatusCodes.BAD_REQUEST).json({
@@ -155,9 +147,8 @@ const UpdateTask = async (req, res) => {
   }
 };
 module.exports = {
-  createTask,
-  createSubject,
-  getAllTask,
-  deleteTask,
-  UpdateTask,
+  createSchedule,
+  getSchedule,
+  deleteSchedule,
+  UpdateSchedule,
 };
