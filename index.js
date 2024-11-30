@@ -14,6 +14,7 @@ const userAuthRoute = require("./route/userAuth.js");
 const networkRoute = require("./route/networkType.js");
 const plansRoute = require("./route/networkplans");
 const buydataRoute = require("./route/buyDataPlan.js");
+const addPaymentRoute = require("./route/addPaymentToWalletRoute.js");
 
 dotenv.config();
 app.use(
@@ -31,6 +32,7 @@ app.use("/api/v1/auth", userAuthRoute);
 app.use("/api/v1/vtu", networkRoute);
 app.use("/api/v1/vtu", plansRoute);
 app.use("/api/v1/vtu", buydataRoute);
+app.use("/api/v1/payment", addPaymentRoute);
 
 app.use(NotFound);
 // app.use(errorHandlerMiddleware);

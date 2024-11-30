@@ -9,6 +9,13 @@ const {
   sendResetSuccessEmail,
 } = require("../mailtrap/sendEmailsToUser");
 const generateJwtCookiesToken = require("../libs/generateJwtTokenCookies");
+const UserWallet = require("../models/userWalletModel");
+const { encryptBalance } = require("../libs/walletEncrytDecrypt");
+const Reserved = require("../models/reservedAccountModel");
+const {
+  virtualBankAccount,
+} = require("../paymentGateway/monnifyPayment/monnifyPayment");
+const { generateReferenceNumber } = require("../libs/generateToken");
 
 const registerUser = async (req, res) => {
   const { email, name, password } = req.body;
@@ -36,6 +43,7 @@ const registerUser = async (req, res) => {
     ).toString();
     // const saltRounds = 10; // Defines the complexity, higher is more secure but slower
     // const hashedPassword = await bcryptjs.hash(password, saltRounds);
+
     const user = new User({
       email,
       password,
@@ -47,6 +55,13 @@ const registerUser = async (req, res) => {
 
     generateJwtCookiesToken(res, user._id);
     sendEmailToNewUsers(email, name, verificationToken);
+    const secureBal = encryptBalance(0);
+
+    const walletBal = new UserWallet({
+      userBalance: secureBal.encryptedData,
+      userid: user._id,
+    });
+    await walletBal.save();
 
     res.status(StatusCodes.CREATED).json({
       success: true,
@@ -130,6 +145,47 @@ const loginUser = async (req, res) => {
     user.lastLogin = Date.now();
     await user.save();
     generateJwtCookiesToken(res, user._id);
+    const reservedAcct = await Reserved.findOne({ userid: user._id });
+    const refNumber = generateReferenceNumber();
+    const cusName = user.name;
+    const cusEmail = user.email;
+    const bvn = "22227075466";
+
+    if (!reservedAcct) {
+      const acctDetails = await virtualBankAccount(
+        refNumber,
+        cusName,
+        cusEmail,
+        bvn
+      );
+      const createSubActt = new Reserved({
+        requestSuccessful: acctDetails.data.requestSuccessful || null,
+        responseMessage: acctDetails.data.responseMessage || null,
+        responseCode: acctDetails.data.responseCode || null,
+        contractCode: acctDetails.data.responseBody.contractCode || null,
+        accountReference:
+          acctDetails.data.responseBody.accountReference || null,
+        accountName: acctDetails.data.responseBody.accountName || null,
+        currencyCode: acctDetails.data.responseBody.currencyCode || null,
+        customerEmail: acctDetails.data.responseBody.customerEmail || null,
+        customerName: acctDetails.data.responseBody.customerName || null,
+
+        accounts: acctDetails.data.responseBody.accounts || null,
+        collectionChannel:
+          acctDetails.data.responseBody.collectionChannel || null,
+        reservationReference:
+          acctDetails.data.responseBody.reservationReference || null,
+        reservedAccountType:
+          acctDetails.data.responseBody.reservedAccountType || null,
+        status: acctDetails.data.responseBody.status || null,
+        createdOn: acctDetails.data.responseBody.createdOn || null,
+        bvn: acctDetails.data.responseBody.bvn || null,
+        restrictPaymentSource:
+          acctDetails.data.responseBody.restrictPaymentSource || null,
+        userid: user._id,
+      });
+      await createSubActt.save();
+    }
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Login Successful",
