@@ -1,11 +1,58 @@
 const mongoose = require("mongoose");
 
-const paymentSourceSchema = new mongoose.Schema({
-  bankCode: { type: String, default: null },
-  amountPaid: { type: String, default: null },
-  accountName: { type: String, default: null },
-  sessionId: { type: String, default: null },
-  accountNumber: { type: String, default: null },
+// const paymentSourceSchema = new mongoose.Schema({
+//   bankCode: { type: String, default: null },
+//   amountPaid: { type: String, default: null },
+//   accountName: { type: String, default: null },
+//   sessionId: { type: String, default: null },
+//   accountNumber: { type: String, default: null },
+// });
+const accountPaymentSchema = new mongoose.Schema({
+  accountName: {
+    type: String,
+    default: null,
+  },
+  accountNumber: {
+    type: String,
+    default: null,
+  },
+  bankCode: {
+    type: String,
+    default: null,
+  },
+  amountPaid: {
+    type: Number, // Using Number for precise arithmetic operations
+    default: null,
+    min: 0,
+  },
+  sessionId: {
+    type: String,
+    default: null,
+  },
+  destinationAccountNumber: {
+    type: String,
+    default: null,
+  },
+  destinationAccountName: {
+    type: String,
+    default: null,
+  },
+  destinationBankCode: {
+    type: String,
+    default: null,
+  },
+  destinationBankName: {
+    type: String,
+    default: null,
+  },
+  bankName: {
+    type: String,
+    default: null,
+  },
+  reservedAccountReference: {
+    type: String,
+    default: null,
+  },
 });
 const depositSchema = mongoose.Schema(
   {
@@ -33,19 +80,8 @@ const depositSchema = mongoose.Schema(
       type: String,
       default: null,
     },
-    paymentSourceInformation: [paymentSourceSchema],
-    destinationAccountInformationBankCode: {
-      type: String,
-      default: null,
-    },
-    destinationAccountInformationAccountNumber: {
-      type: String,
-      default: null,
-    },
-    destinationAccountInformationBankName: {
-      type: String,
-      default: null,
-    },
+    // paymentSourceInformation: [paymentSourceSchema],
+    accountPayments: [accountPaymentSchema],
     amountPaid: {
       type: String,
       default: null,
@@ -106,14 +142,59 @@ const depositSchema = mongoose.Schema(
       type: String,
       default: null,
     },
-    eventType: {
+    accountName: {
       type: String,
       default: null,
     },
+    accountNumber: {
+      type: String,
+      default: null,
+    },
+    bankCode: {
+      type: String,
+      default: null,
+    },
+    amountPaid: {
+      type: Number, // Use Number for arithmetic operations
+      default: null,
+      min: 0,
+    },
+    sessionId: {
+      type: String,
+      default: null,
+    },
+    destinationAccountNumber: {
+      type: String,
+      default: null,
+    },
+    destinationAccountName: {
+      type: String,
+      default: null,
+    },
+    destinationBankCode: {
+      type: String,
+      default: null,
+    },
+    destinationBankName: {
+      type: String,
+      default: null,
+    },
+    bankName: {
+      type: String,
+      default: null,
+    },
+    reservedAccountReference: {
+      type: String,
+      default: null,
+    },
+    // eventType: {
+    //   type: String,
+    //   default: null,
+    // },
     // userid: {
     //   type: mongoose.Schema.Types.ObjectId,
     //   ref: "User",
-    //   required: true,
+    //    default: null,
     // },
   },
   { timestamps: true }

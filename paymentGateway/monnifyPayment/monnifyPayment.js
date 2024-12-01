@@ -124,7 +124,7 @@ async function verifyPayment(referenceNo) {
     };
 
     const response = await axios.request(options);
-    console.log(response);
+    return response;
   } catch (error) {
     console.error(error);
   }

@@ -5,6 +5,7 @@ const { generateReferenceNumber } = require("../libs/generateToken");
 const User = require("../models/userModel");
 const {
   monnifyInitializaTransaction,
+  verifyPayment,
 } = require("../paymentGateway/monnifyPayment/monnifyPayment");
 const Deposit = require("../models/depositTransactionModel");
 const dotenv = require("dotenv");
@@ -15,6 +16,7 @@ const {
   decryptBalance,
   encryptBalance,
 } = require("../libs/walletEncrytDecrypt");
+const Reserved = require("../models/reservedAccountModel");
 dotenv.config();
 const initailPaymentToWallet = async (req, res) => {
   const { amountToPay } = req.body;
@@ -88,8 +90,8 @@ const initailPaymentToWallet = async (req, res) => {
 };
 
 const getWebHookInformations = async (req, res) => {
-  const paymentInfo = req.body;
-  const headers = req.headers;
+  const paymentInfo = req.body; //Get Payment Information from webhook
+  const headers = req.headers; //Get Headers from webhook
   const monnifySignature = headers["monnify-signature"];
   // console.log(paymentInfo);
   const computeHash = (requestBody) => {
@@ -102,7 +104,6 @@ const getWebHookInformations = async (req, res) => {
   };
 
   const computedHash = computeHash(paymentInfo);
-  // console.log("Computed hash", computedHash);
 
   try {
     const checkForDuplicate = await Deposit.findOne({
@@ -110,91 +111,220 @@ const getWebHookInformations = async (req, res) => {
     });
     if (!checkForDuplicate) {
       if (computedHash === monnifySignature) {
-        const savePayment = new Deposit({
-          productReference: paymentInfo.eventData.product.reference || null,
-          productType: paymentInfo.eventData.product.type || null,
-          transactionReference:
-            paymentInfo.eventData.transactionReference || null,
-          paymentReference: paymentInfo.eventData.paymentReference || null,
-          paidOn: paymentInfo.eventData.paidOn || null,
-          paymentDescription: paymentInfo.eventData.paymentDescription || null,
-          paymentSourceInformation:
-            paymentInfo.eventData.paymentSourceInformation || null,
-          destinationAccountInformationBankCode:
-            paymentInfo.eventData.destinationAccountInformation.bankCode ||
-            null,
-          destinationAccountInformationAccountNumber:
-            paymentInfo.eventData.destinationAccountInformation.accountNumber ||
-            null,
-          destinationAccountInformationBankName:
-            paymentInfo.eventData.destinationAccountInformation.bankName ||
-            null,
-          amountPaid: paymentInfo.eventData.amountPaid || null,
-          totalPayable: paymentInfo.eventData.totalPayable || null,
-          cardDetailsexpMonth:
-            paymentInfo.eventData.cardDetails.expMonth || null,
-          cardDetailsLast4: paymentInfo.eventData.cardDetails.last4 || null,
-          cardDetailsmaskedPan:
-            paymentInfo.eventData.cardDetails.maskedPan || null,
-          cardDetailsExpYear: paymentInfo.eventData.cardDetails.expYear || null,
-          cardDetailsBin: paymentInfo.eventData.cardDetails.bin || null,
-          cardDetailsReusable:
-            paymentInfo.eventData.cardDetails.reusable || null,
-          paymentMethod: paymentInfo.eventData.paymentMethod || null,
-          currency: paymentInfo.eventData.currency || null,
-          settlementAmount: paymentInfo.eventData.settlementAmount || null,
-          paymentStatus: paymentInfo.eventData.paymentStatus || null,
-          customerName: paymentInfo.eventData.customer.name || null,
-          customerEmail: paymentInfo.eventData.customer.email || null,
-          eventType: paymentInfo.eventType || null,
-        });
-        await savePayment.save();
-        if (paymentInfo.eventData.product.type === "WEB_SDK") {
-          const userWhoMadePayment = await Transaction.findOne({
-            "responseBody.transactionReference":
-              paymentInfo.eventData.transactionReference,
-            "responseBody.paymentReference":
-              paymentInfo.eventData.paymentReference,
-          })
-            .populate("userid", "email _id")
-            .exec();
+        //Verify Payment
+        const transactionStatusVerify = await verifyPayment(
+          paymentInfo.eventData.transactionReference
+        );
 
-          const useCallbackDeposit = await Deposit.findOne({
+        if (
+          transactionStatusVerify.data.requestSuccessful === true &&
+          transactionStatusVerify.data.responseMessage === "success"
+        ) {
+          console.log(transactionStatusVerify.data.responseBody);
+
+          const savePayment = new Deposit({
+            productReference:
+              transactionStatusVerify.data.responseBody.product.reference ||
+              null,
+            productType:
+              transactionStatusVerify.data.responseBody.product.type || null,
             transactionReference:
-              userWhoMadePayment.responseBody.transactionReference,
-            paymentReference: userWhoMadePayment.responseBody.paymentReference,
+              transactionStatusVerify.data.responseBody.transactionReference ||
+              null,
+            paymentReference:
+              transactionStatusVerify.data.responseBody.paymentReference ||
+              null,
+            paidOn: transactionStatusVerify.data.responseBody.paidOn || null,
+            paymentDescription:
+              transactionStatusVerify.data.responseBody.paymentDescription ||
+              null,
+            paymentSourceInformation:
+              paymentInfo.eventData.paymentSourceInformation || null,
+            accountPayments: transactionStatusVerify.data.responseBody
+              .accountPayments
+              ? transactionStatusVerify.data.responseBody.accountPayments
+              : [],
+            amountPaid:
+              transactionStatusVerify.data.responseBody.amountPaid || null,
+            totalPayable:
+              transactionStatusVerify.data.responseBody.totalPayable || null,
+            cardDetailsexpMonth: transactionStatusVerify.data.responseBody
+              .cardDetails
+              ? transactionStatusVerify.data.responseBody.cardDetails.expMonth
+              : null,
+            cardDetailsLast4: transactionStatusVerify.data.responseBody
+              .cardDetails
+              ? transactionStatusVerify.data.responseBody.cardDetails.last4
+              : null,
+            cardDetailsmaskedPan: transactionStatusVerify.data.responseBody
+              .cardDetails
+              ? transactionStatusVerify.data.responseBody.cardDetails.maskedPan
+              : null,
+            cardDetailsExpYear: transactionStatusVerify.data.responseBody
+              .cardDetails
+              ? transactionStatusVerify.data.responseBody.cardDetails.expYear
+              : null,
+            cardDetailsBin: transactionStatusVerify.data.responseBody
+              .cardDetails
+              ? transactionStatusVerify.data.responseBody.cardDetails.bin
+              : null,
+            cardDetailsReusable: transactionStatusVerify.data.responseBody
+              .cardDetails
+              ? transactionStatusVerify.data.responseBody.cardDetails.reusable
+              : null,
+            paymentMethod:
+              transactionStatusVerify.data.responseBody.paymentMethod || null,
+            currency:
+              transactionStatusVerify.data.responseBody.currency || null,
+            settlementAmount:
+              transactionStatusVerify.data.responseBody.settlementAmount ||
+              null,
+            paymentStatus:
+              transactionStatusVerify.data.responseBody.paymentStatus || null,
+            customerName:
+              transactionStatusVerify.data.responseBody.name || null,
+            customerEmail:
+              transactionStatusVerify.data.responseBody.customer.email || null,
+            accountName: transactionStatusVerify.data.responseBody
+              .accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .accountName
+              : null,
+            accountNumber: transactionStatusVerify.data.responseBody
+              .accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .accountNumber
+              : null,
+            bankCode: transactionStatusVerify.data.responseBody.accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .bankCode
+              : null,
+            amountPaid: transactionStatusVerify.data.responseBody.accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .amountPaid
+              : null,
+            sessionId: transactionStatusVerify.data.responseBody.accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .sessionId
+              : null,
+            destinationAccountNumber: transactionStatusVerify.data.responseBody
+              .accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .destinationAccountNumber
+              : null,
+            destinationAccountName: transactionStatusVerify.data.responseBody
+              .accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .destinationAccountName
+              : null,
+            destinationBankCode: transactionStatusVerify.data.responseBody
+              .accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .destinationBankCode
+              : null,
+            destinationBankName: transactionStatusVerify.data.responseBody
+              .accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .destinationBankName
+              : null,
+            bankName: transactionStatusVerify.data.responseBody.accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .bankName
+              : null,
+            reservedAccountReference: transactionStatusVerify.data.responseBody
+              .accountDetails
+              ? transactionStatusVerify.data.responseBody.accountDetails
+                  .reservedAccountReference
+              : null,
+            // eventType: paymentInfo.eventType || null,
           });
-          // console.log(userWhoMadePayment);
-          // console.log(userWhoMadePayment);
-          // console.log(useCallbackDeposit);
+          await savePayment.save();
           if (
-            userWhoMadePayment.responseBody.transactionReference ===
-              useCallbackDeposit.transactionReference &&
-            userWhoMadePayment.responseBody.paymentReference ===
-              useCallbackDeposit.productReference
+            transactionStatusVerify.data.responseBody.product.type === "WEB_SDK"
           ) {
-            const userid = userWhoMadePayment.userid._id.valueOf();
-            const addToWallet = await UserWallet.findOne({
-              userid: userWhoMadePayment.userid._id,
+            console.log(transactionStatusVerify);
+            const userWhoMadePayment = await Transaction.findOne({
+              "responseBody.transactionReference":
+                transactionStatusVerify.data.responseBody.transactionReference,
+              "responseBody.paymentReference":
+                transactionStatusVerify.data.responseBody.paymentReference,
+            })
+              .populate("userid", "email _id")
+              .exec();
+
+            const useCallbackDeposit = await Deposit.findOne({
+              transactionReference:
+                userWhoMadePayment.responseBody.transactionReference,
+              paymentReference:
+                userWhoMadePayment.responseBody.paymentReference,
             });
-            console.log(addToWallet);
-            const deCryptAmount = decryptBalance(
-              addToWallet.userBalance,
+
+            if (
+              userWhoMadePayment.responseBody.transactionReference ===
+                useCallbackDeposit.transactionReference &&
+              userWhoMadePayment.responseBody.paymentReference ===
+                useCallbackDeposit.productReference
+            ) {
+              const userid = userWhoMadePayment.userid._id.valueOf();
+              const addToWallet = await UserWallet.findOne({
+                userid: userWhoMadePayment.userid._id,
+              });
+
+              const deCryptAmount = decryptBalance(
+                addToWallet.userBalance,
+                process.env.IV
+              );
+              console.log(deCryptAmount);
+              const newAmount =
+                Number(deCryptAmount) + Number(useCallbackDeposit.amountPaid);
+              const amountString = newAmount;
+              const balanceEncrypted = encryptBalance(amountString);
+              addToWallet.userBalance = balanceEncrypted.encryptedData;
+              await addToWallet.save();
+            }
+          }
+          if (
+            transactionStatusVerify.data.responseBody.product.type ===
+            "RESERVED_ACCOUNT"
+          ) {
+            const useCallbackDeposits = await Deposit.findOne({
+              transactionReference:
+                transactionStatusVerify.data.responseBody.transactionReference,
+              paymentReference:
+                transactionStatusVerify.data.responseBody.paymentReference,
+            });
+            console.log(useCallbackDeposits);
+            const userReservedAcct =
+              useCallbackDeposits.destinationAccountNumber;
+            console.log(userReservedAcct);
+            const getReservedAccount = await Reserved.findOne({
+              "accounts.accountNumber": userReservedAcct,
+            })
+              .populate("userid", "email")
+              .exec();
+            // console.log(getReservedAccount);
+            const getUserWallet = await UserWallet.findOne({
+              userid: getReservedAccount.userid._id,
+            });
+            console.log(getUserWallet);
+
+            const deCryptAmountReserved = decryptBalance(
+              getUserWallet.userBalance,
               process.env.IV
             );
-            // console.log(deCryptAmount);
-            // console.log(useCallbackDeposit.amountPaid);
-            const newAmount =
-              Number(deCryptAmount) + Number(useCallbackDeposit.amountPaid);
-            const amountString = newAmount;
-            const balanceEncrypted = encryptBalance(amountString);
-            addToWallet.userBalance = balanceEncrypted.encryptedData;
-            await addToWallet.save();
+
+            const newAmountReserved =
+              Number(deCryptAmountReserved) +
+              Number(useCallbackDeposits.amountPaid);
+            const amountStringReserved = newAmountReserved;
+            console.log(amountStringReserved);
+            const balanceEncryptedReserved =
+              encryptBalance(amountStringReserved);
+            getUserWallet.userBalance = balanceEncryptedReserved.encryptedData;
+            await getUserWallet.save();
           }
         }
-        if (paymentInfo.eventData.product.type === "RESERVED_ACCOUNT") {
-        }
-      }
+      } //lastone
     }
   } catch (error) {
     console.log(error);
