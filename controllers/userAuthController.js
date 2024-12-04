@@ -10,7 +10,10 @@ const {
 } = require("../mailtrap/sendEmailsToUser");
 const generateJwtCookiesToken = require("../libs/generateJwtTokenCookies");
 const UserWallet = require("../models/userWalletModel");
-const { encryptBalance } = require("../libs/walletEncrytDecrypt");
+const {
+  encryptBalance,
+  decryptBalance,
+} = require("../libs/walletEncrytDecrypt");
 const Reserved = require("../models/reservedAccountModel");
 const {
   virtualBankAccount,
@@ -53,7 +56,7 @@ const registerUser = async (req, res) => {
     });
     await user.save();
 
-    generateJwtCookiesToken(res, user._id);
+    const tokens = generateJwtCookiesToken(res, user._id);
     sendEmailToNewUsers(email, name, verificationToken);
     const secureBal = encryptBalance(0);
 
@@ -69,6 +72,7 @@ const registerUser = async (req, res) => {
       user: {
         ...user._doc,
         password: undefined,
+        token: tokens,
       },
     });
   } catch (error) {
@@ -142,9 +146,16 @@ const loginUser = async (req, res) => {
         message: "Email is not verified. Please verify your email first",
       });
     }
+
+    if (user.status === "disabled") {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Your account is disabled. Please contact your administrator",
+      });
+    }
     user.lastLogin = Date.now();
     await user.save();
-    generateJwtCookiesToken(res, user._id);
+    const tokens = generateJwtCookiesToken(res, user._id);
     const reservedAcct = await Reserved.findOne({ userid: user._id });
     const refNumber = generateReferenceNumber();
     const cusName = user.name;
@@ -189,6 +200,7 @@ const loginUser = async (req, res) => {
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Login Successful",
+      token: tokens,
     });
   } catch (error) {
     console.log(error);
@@ -306,17 +318,21 @@ const resetUserPasswordLink = async (req, res) => {
 
 const protectedRoute = async (req, res) => {
   try {
-    const getUserDetails = await User.findById(req.user.userid).select(
-      "-password"
+    const users = await User.findById(req.user.userid).select("-password");
+
+    const getUserWallet = await UserWallet.findOne({
+      userid: users._id,
+    });
+    const walletBalannce = decryptBalance(
+      getUserWallet.userBalance,
+      process.env.IV
     );
-    if (!getUserDetails) {
+    if (!users) {
       res
         .status(StatusCodes.BAD_REQUEST)
         .json({ success: true, message: "User not found" });
     }
-    res
-      .status(StatusCodes.BAD_REQUEST)
-      .json({ success: true, user: getUserDetails });
+    res.status(StatusCodes.OK).json({ success: true, users, walletBalannce });
   } catch (error) {
     res
       .status(StatusCodes.BAD_REQUEST)

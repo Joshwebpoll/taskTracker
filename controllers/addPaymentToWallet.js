@@ -27,7 +27,7 @@ const initailPaymentToWallet = async (req, res) => {
       .status(StatusCodes.BAD_REQUEST)
       .json({ status: false, message: "Please Enter a valid amount" });
   }
-  if (amountToPay <= 10) {
+  if (amountToPay <= 100) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       status: false,
       message: "Deposit amount should be greater than 100 naira",

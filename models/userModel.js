@@ -21,6 +21,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    status: {
+      type: String,
+      enum: ["enabled", "disabled"],
+      default: "enabled",
+    },
     lastLogin: {
       type: Date,
       default: Date.now,

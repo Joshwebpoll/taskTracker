@@ -28,7 +28,7 @@ function decryptBalance(encryptedData, iv) {
   decrypted += decipher.final("utf8");
   return decrypted;
 }
-// console.log(encryptBalance(100));
+//console.log(encryptBalance(100000));
 // console.log(
 //   decryptBalance(
 //     "0902ee0620cc83e866ced98d54f036b0",

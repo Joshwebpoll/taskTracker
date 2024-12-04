@@ -3,7 +3,9 @@ const dotenv = require("dotenv");
 const { StatusCodes } = require("http-status-codes");
 dotenv.config();
 function protectRoute(req, res, next) {
-  const getToken = req.cookies.token;
+  // const getToken = req.cookies.token;
+  //or
+  const getToken = req.headers["authorization"]?.split(" ")[1];
 
   try {
     const token = jwt.verify(getToken, process.env.JWT_SECRET_KEY);

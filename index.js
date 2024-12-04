@@ -17,12 +17,12 @@ const buydataRoute = require("./route/buyDataPlan.js");
 const addPaymentRoute = require("./route/addPaymentToWalletRoute.js");
 
 dotenv.config();
-app.use(
-  cors({
-    origin: "http://127.0.0.1:5500", // Your front-end origin
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: "http://192.168.123.59", // Your front-end origin
+//     credentials: true,
+//   })
+// );
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -36,7 +36,7 @@ app.use("/api/v1/payment", addPaymentRoute);
 
 app.use(NotFound);
 // app.use(errorHandlerMiddleware);
-const port = 3000;
+const port = process.env.PORT || 3000;
 const startServer = async () => {
   try {
     await connectToDB();
