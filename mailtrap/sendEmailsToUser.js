@@ -47,7 +47,7 @@ function sendMailVerificationSuccess(userEmail, username) {
   }
 }
 
-function sendForgotEmailLink(user, resentLink) {
+function sendForgotEmailLink(user, resentLink, platform) {
   const recipients = [
     {
       email: user.email,
@@ -59,7 +59,7 @@ function sendForgotEmailLink(user, resentLink) {
       from: sender,
       to: recipients,
       subject: "Email verified Successfull",
-      html: resetPasswordUserLink(user, resentLink),
+      html: resetPasswordUserLink(user, resentLink, platform),
       category: "Reset Password",
     });
     console.log("Email sent successfully");

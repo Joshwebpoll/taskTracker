@@ -26,7 +26,7 @@ const registerUser = async (req, res) => {
     if (!email || !name || !password) {
       return res
         .status(StatusCodes.BAD_REQUEST)
-        .json({ status: false, message: "All field are require" });
+        .json({ status: false, message: "All field are required" });
     }
     if (password.length < 6) {
       return res
@@ -66,7 +66,7 @@ const registerUser = async (req, res) => {
     });
     await walletBal.save();
 
-    res.status(StatusCodes.CREATED).json({
+    return res.status(StatusCodes.CREATED).json({
       success: true,
       message: "User created successfully",
       user: {
@@ -76,7 +76,7 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    return res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -211,6 +211,38 @@ const loginUser = async (req, res) => {
   }
 };
 
+const resendEmailVerificationCode = async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ status: false, message: "All field are required" });
+    }
+    const getCode = await User.findOne({ email: email });
+    if (!getCode) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid Email Address",
+      });
+    }
+    if (getCode.isverified === true) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Email already verified",
+      });
+    }
+    sendEmailToNewUsers(getCode.email, getCode.name, getCode.verificationToken);
+    return res
+      .status(StatusCodes.OK)
+      .json({ success: true, message: "Verification code Sent to your Email" });
+  } catch (error) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ success: false, message: error.message });
+  }
+};
+
 const verifyUserEmail = async (req, res) => {
   const { verificationToken } = req.body;
 
@@ -233,12 +265,12 @@ const verifyUserEmail = async (req, res) => {
 
     sendMailVerificationSuccess(checkEmailCode.email, checkEmailCode.name);
 
-    res
-      .status(StatusCodes.BAD_REQUEST)
+    return res
+      .status(StatusCodes.OK)
       .json({ success: true, message: "Email Verified Successful" });
   } catch (error) {
     console.log(error);
-    res
+    return res
       .status(StatusCodes.BAD_REQUEST)
       .json({ success: false, message: error.message });
   }
@@ -252,26 +284,46 @@ const logOutUser = async (req, res) => {
 };
 
 const resetUserPassword = async (req, res) => {
-  const { email } = req.body;
+  const { email, platform } = req.body;
   try {
     const user = await User.findOne({ email });
-    if (!user) {
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json({ success: false, message: "Invalid Email Address or Password" });
+    if (!platform) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "platform is required either for mobile or web",
+      });
     }
+    if (!user) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid Email Address or Password",
+      });
+    }
+    let tokenType;
+    const mobilePasswordToken = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
     const generateResetToken = crypto.randomBytes(20).toString("hex");
-    user.resetPasswordToken = generateResetToken;
+    if (platform === "mobile") {
+      tokenType = mobilePasswordToken;
+    } else {
+      tokenType = generateResetToken;
+    }
+
+    user.resetPasswordToken = tokenType;
     user.resetPasswordExpiresAt = Date.now() + 1 * 60 * 60 * 1000; // 1 hour
 
     await user.save();
 
     sendForgotEmailLink(
       user,
-      `${process.env.RESET_LINK}/forgotPassword/${generateResetToken}`
+      platform === "mobile"
+        ? tokenType
+        : `${process.env.RESET_LINK}/forgotPassword/${generateResetToken}`,
+      platform
     );
 
-    res.status(StatusCodes.BAD_REQUEST).json({
+    res.status(StatusCodes.OK).json({
       success: true,
       message: "Email verification sent to your email",
     });
@@ -288,6 +340,82 @@ const resetUserPasswordLink = async (req, res) => {
     return res
       .status(StatusCodes.BAD_REQUEST)
       .json({ status: false, message: "Password Must be greater than 5" });
+  }
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpiresAt: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid or expired reset token",
+      });
+    }
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiresAt = undefined;
+    await user.save();
+    sendResetSuccessEmail(user);
+    res
+      .status(StatusCodes.OK)
+      .json({ success: true, message: "Password reset was successful" });
+  } catch (error) {
+    res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ success: false, message: error.message });
+  }
+};
+
+const resetUserPasswordOtpMobile = async (req, res) => {
+  const { token } = req.body;
+  // const { token } = req.params;
+
+  if (token.length === 0 || !token) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      status: false,
+      message: "In valid token... please try again later",
+    });
+  }
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpiresAt: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    res
+      .status(StatusCodes.OK)
+      .json({ success: true, message: "valid otp token" });
+  } catch (error) {
+    res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ success: false, message: error.message });
+  }
+};
+
+const updatePasswordOtpMobile = async (req, res) => {
+  const { password, token } = req.body;
+  // const { token } = req.params;
+  if (password.length < 6) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ status: false, message: "Password Must be greater than 5" });
+  }
+
+  if (token.length === 0) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      status: false,
+      message: "In valid token... please try again later",
+    });
   }
   try {
     const user = await User.findOne({
@@ -348,4 +476,7 @@ module.exports = {
   resetUserPasswordLink,
   protectedRoute,
   ResendVerificationEmailToUser,
+  resendEmailVerificationCode,
+  resetUserPasswordOtpMobile,
+  updatePasswordOtpMobile,
 };

@@ -83,7 +83,7 @@ function VerifyEmailTemplate(name, verificationCode) {
 `;
 }
 
-function resetPasswordUserLink(user, resentLink) {
+function resetPasswordUserLink(user, resentLink, platform) {
   return `
     <!DOCTYPE html>
 <html lang="en">
@@ -149,9 +149,13 @@ function resetPasswordUserLink(user, resentLink) {
         </div>
         <div class="content">
             <p>Hello ${user.name},</p>
-            <p>We received a request to reset your password. Please click the button below to set a new password:</p>
+            <p>We received a request to reset your password. Please click the button or enter the otp below to set a new password:</p>
             <div class="button-container">
-                <a href="http://${resentLink}" class="button" style="color:#ffffff;">Reset My Password</a>
+                ${
+                  platform === "mobile"
+                    ? `<h1>${resentLink}</h1>`
+                    : `<a href="http://${resentLink}" class="button" style="color:#ffffff;">Reset My Password</a>`
+                }
             </div>
             <p>This link will expire in 1 hour. If you did not request a password reset, you can safely ignore this email.</p>
         </div>
