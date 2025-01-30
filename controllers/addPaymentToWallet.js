@@ -75,7 +75,7 @@ const initailPaymentToWallet = async (req, res) => {
         userid: userid,
       });
       await initTransact.save();
-      return res.status(StatusCodes.BAD_REQUEST).json({
+      return res.status(StatusCodes.OK).json({
         status: true,
         data: deposit.data.responseBody,
       });

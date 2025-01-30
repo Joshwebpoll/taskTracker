@@ -161,7 +161,20 @@ const loginUser = async (req, res) => {
     const cusName = user.name;
     const cusEmail = user.email;
     const bvn = "22227075466";
+    const users = await User.findById(user._id).select("-password");
 
+    const getUserWallet = await UserWallet.findOne({
+      userid: users._id,
+    });
+    const walletBalance = decryptBalance(
+      getUserWallet.userBalance,
+      process.env.IV
+    );
+    // if (!users) {
+    //   return res
+    //     .status(StatusCodes.BAD_REQUEST)
+    //     .json({ success: true, message: "User not found" });
+    // }
     if (!reservedAcct) {
       const acctDetails = await virtualBankAccount(
         refNumber,
@@ -200,6 +213,9 @@ const loginUser = async (req, res) => {
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Login Successful",
+      email: users.email,
+      name: users.name,
+      walletBalance,
       token: tokens,
     });
   } catch (error) {
@@ -434,11 +450,11 @@ const updatePasswordOtpMobile = async (req, res) => {
     user.resetPasswordExpiresAt = undefined;
     await user.save();
     sendResetSuccessEmail(user);
-    res
+    return res
       .status(StatusCodes.OK)
       .json({ success: true, message: "Password reset was successful" });
   } catch (error) {
-    res
+    return res
       .status(StatusCodes.BAD_REQUEST)
       .json({ success: false, message: error.message });
   }
@@ -451,18 +467,25 @@ const protectedRoute = async (req, res) => {
     const getUserWallet = await UserWallet.findOne({
       userid: users._id,
     });
-    const walletBalannce = decryptBalance(
+    const walletBalance = decryptBalance(
       getUserWallet.userBalance,
       process.env.IV
     );
     if (!users) {
-      res
+      return res
         .status(StatusCodes.BAD_REQUEST)
         .json({ success: true, message: "User not found" });
     }
-    res.status(StatusCodes.OK).json({ success: true, users, walletBalannce });
+    return res
+      .status(StatusCodes.OK)
+      .json({
+        success: true,
+        name: users.name,
+        email: users.email,
+        walletBalance,
+      });
   } catch (error) {
-    res
+    return res
       .status(StatusCodes.BAD_REQUEST)
       .json({ success: false, message: error.message });
   }

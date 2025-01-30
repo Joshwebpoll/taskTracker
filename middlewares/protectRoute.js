@@ -10,7 +10,7 @@ function protectRoute(req, res, next) {
   try {
     const token = jwt.verify(getToken, process.env.JWT_SECRET_KEY);
     if (!token) {
-      res
+      return res
         .status(StatusCodes.OK)
         .json({ success: false, message: "Invalid Token" });
     }
@@ -18,7 +18,7 @@ function protectRoute(req, res, next) {
     req.user = token;
     next();
   } catch (error) {
-    res
+    return res
       .status(StatusCodes.BAD_REQUEST)
       .json({ success: false, message: "invalid token provided" });
   }

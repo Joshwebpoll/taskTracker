@@ -26,7 +26,7 @@ router.post("/forgotPassword", resetUserPassword);
 router.post("/resetpassword/:token", resetUserPasswordLink);
 router.post("/resetpasswordmobile", resetUserPasswordOtpMobile);
 router.post("/updatepasswordmobile", updatePasswordOtpMobile);
-router.post("/checkauth", protectRoute, protectedRoute);
+router.get("/checkauth", protectRoute, protectedRoute);
 router.post("/resendCode", ResendVerificationEmailToUser);
 router.post("/resendEmailCode", resendEmailVerificationCode);
 
