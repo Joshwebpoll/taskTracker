@@ -360,7 +360,7 @@ const getWebHookInformations = async (req, res) => {
               paymentReference:
                 transactionStatusVerify.data.responseBody.paymentReference,
             });
-            console.log(useCallbackDep);
+
             const newAmount =
               Number(deCryptAmount) + Number(useCallbackDep.amountPaid);
             const amountString = newAmount;
