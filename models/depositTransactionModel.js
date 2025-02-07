@@ -187,6 +187,10 @@ const depositSchema = mongoose.Schema(
       type: String,
       default: null,
     },
+    mobileUserId: {
+      type: String,
+      default: null,
+    },
     // eventType: {
     //   type: String,
     //   default: null,

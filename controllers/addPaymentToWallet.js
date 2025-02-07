@@ -12,6 +12,7 @@ const dotenv = require("dotenv");
 const Duplicate = require("../models/duplicateModel");
 const Transaction = require("../models/initializeTransaction");
 const UserWallet = require("../models/userWalletModel");
+const jwt = require("jsonwebtoken");
 const {
   decryptBalance,
   encryptBalance,
@@ -236,6 +237,9 @@ const getWebHookInformations = async (req, res) => {
               ? transactionStatusVerify.data.responseBody.accountDetails
                   .reservedAccountReference
               : null,
+            mobileUserId: transactionStatusVerify.data.responseBody.metaData
+              ? transactionStatusVerify.data.responseBody.metaData.userId
+              : null,
             // eventType: paymentInfo.eventType || null,
           });
           await savePayment.save();
@@ -322,6 +326,47 @@ const getWebHookInformations = async (req, res) => {
               encryptBalance(amountStringReserved);
             getUserWallet.userBalance = balanceEncryptedReserved.encryptedData;
             await getUserWallet.save();
+          }
+
+          if (
+            transactionStatusVerify.data.responseBody.product.type ===
+            "MOBILE_SDK"
+          ) {
+            const useCallbackDeposits = await Deposit.findOne({
+              transactionReference:
+                transactionStatusVerify.data.responseBody.transactionReference,
+              paymentReference:
+                transactionStatusVerify.data.responseBody.paymentReference,
+            });
+
+            const getMobileUser = jwt.verify(
+              useCallbackDeposits.mobileUserId,
+              process.env.JWT_SECRET_KEY
+            );
+            const realUserId = getMobileUser.userid;
+
+            const addToWallet = await UserWallet.findOne({
+              userid: realUserId,
+            });
+
+            const deCryptAmount = decryptBalance(
+              addToWallet.userBalance,
+              process.env.IV
+            );
+            console.log(deCryptAmount);
+            const useCallbackDep = await Deposit.findOne({
+              transactionReference:
+                transactionStatusVerify.data.responseBody.transactionReference,
+              paymentReference:
+                transactionStatusVerify.data.responseBody.paymentReference,
+            });
+            console.log(useCallbackDep);
+            const newAmount =
+              Number(deCryptAmount) + Number(useCallbackDep.amountPaid);
+            const amountString = newAmount;
+            const balanceEncrypted = encryptBalance(amountString);
+            addToWallet.userBalance = balanceEncrypted.encryptedData;
+            await addToWallet.save();
           }
         }
       } //lastone

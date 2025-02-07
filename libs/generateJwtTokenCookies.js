@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 function generateJwtCookiesToken(res, userid) {
   const token = jwt.sign({ userid }, process.env.JWT_SECRET_KEY, {
-    expiresIn: "1h",
+    expiresIn: "5h",
   });
 
   //   res.cookie("username", "JohnDoe", {
