@@ -476,14 +476,19 @@ const protectedRoute = async (req, res) => {
         .status(StatusCodes.BAD_REQUEST)
         .json({ success: true, message: "User not found" });
     }
-    return res
-      .status(StatusCodes.OK)
-      .json({
-        success: true,
-        name: users.name,
-        email: users.email,
-        walletBalance,
-      });
+    const reservedAcct = await Reserved.findOne({ userid: users._id });
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      name: users.name,
+      email: users.email,
+      // accountName: reservedAcct.accountName,
+      firstAccount: {
+        accountsNumber: reservedAcct.accounts[0].accountNumber,
+        bankName: reservedAcct.accounts[0].bankName,
+        accountName: reservedAcct.accounts[0].accountName,
+      },
+      walletBalance,
+    });
   } catch (error) {
     return res
       .status(StatusCodes.BAD_REQUEST)
