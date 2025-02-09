@@ -29,8 +29,8 @@ const getNetwork = async (req, res) => {
     res.status(StatusCodes.OK).json({ status: true, data: networks });
   } catch (error) {
     res
-      .status(StatusCodes.OK)
-      .json({ status: true, message: "created successfully" });
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ status: true, message: "Something went wrong, try again later" });
   }
 };
 
