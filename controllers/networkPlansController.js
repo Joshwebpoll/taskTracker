@@ -2,7 +2,7 @@ const { StatusCodes } = require("http-status-codes");
 const Plan = require("../models/networkplansModel");
 
 const createPlans = async (req, res) => {
-  const { planName, productCode, price, networkId } = req.body;
+  const { planName, productCode, price, networkId, networkName } = req.body;
   try {
     if (!planName || !productCode || !price || !networkId) {
       return res
@@ -22,6 +22,7 @@ const createPlans = async (req, res) => {
       productCode,
       price,
       networkId,
+      networkName,
     });
 
     await plans.save();
@@ -46,4 +47,30 @@ const getPlans = async (req, res) => {
   }
 };
 
-module.exports = { createPlans, getPlans };
+const getPlansByNetwork = async (req, res) => {
+  const plansNetwork = req.query.network;
+
+  try {
+    if (!plansNetwork) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: false,
+        message: "Query value must not be empty",
+      });
+    }
+    const plans = await Plan.find({ networkName: plansNetwork });
+
+    if (!plans) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        status: false,
+        message: "Invalid network query, Please try again",
+      });
+    }
+    return res.status(StatusCodes.OK).json({ status: true, data: plans });
+  } catch (error) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ status: false, message: "Something went wrong" });
+  }
+};
+
+module.exports = { createPlans, getPlans, getPlansByNetwork };

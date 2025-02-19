@@ -19,6 +19,10 @@ const plansSchema = mongoose.Schema(
       ref: "Network",
       required: true,
     },
+    networkName: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 );
