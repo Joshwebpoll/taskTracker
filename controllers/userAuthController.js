@@ -124,7 +124,8 @@ const loginUser = async (req, res) => {
         .status(StatusCodes.BAD_REQUEST)
         .json({ success: false, message: "Please all field are required" });
     }
-    const user = await User.findOne({ email });
+    const mails = email.toLowerCase();
+    const user = await User.findOne({ mails });
 
     if (!user) {
       return res
