@@ -21,7 +21,7 @@ const Reserved = require("../models/reservedAccountModel");
 dotenv.config();
 const initailPaymentToWallet = async (req, res) => {
   const { amountToPay } = req.body;
-  console.log(amountToPay);
+  // console.log(amountToPay);
 
   if (!amountToPay) {
     return res
@@ -51,10 +51,10 @@ const initailPaymentToWallet = async (req, res) => {
     const userid = req.user.userid;
 
     const getDetails = await User.findById({ _id: userid });
-    console.log(getDetails);
+
     const userName = getDetails.name;
     const userEmail = getDetails.email;
-    console.log(userEmail);
+
     const refNumber = generateReferenceNumber();
     const deposit = await monnifyInitializaTransaction(
       amountToPay,
@@ -121,8 +121,6 @@ const getWebHookInformations = async (req, res) => {
           transactionStatusVerify.data.requestSuccessful === true &&
           transactionStatusVerify.data.responseMessage === "success"
         ) {
-          console.log(transactionStatusVerify.data.responseBody);
-
           const savePayment = new Deposit({
             productReference:
               transactionStatusVerify.data.responseBody.product.reference ||
