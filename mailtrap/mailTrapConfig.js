@@ -8,7 +8,7 @@ const client = new MailtrapClient({
 
 const sender = {
   email: "hello@irenecopywriters.com",
-  name: "Vtu",
+  name: "Joshdatabiz",
 };
 // const recipients = [
 //   {
